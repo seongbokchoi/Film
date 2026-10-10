@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>필름 장노출 상반칙불궤 계산기</title>
+  <style>
+    :root {
+      --bg: #121417;
+      --card-bg: #1b1f24;
+      --card-border: #2d333b;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #f0883e;
+      --accent-hover: #d97706;
+      --accent-subtle: rgba(240, 136, 62, 0.15);
+      --table-stripe: #161a1f;
+      --active-row: rgba(240, 136, 62, 0.2);
+      --timer-bg: #0d1117;
+      --timer-text: #58a6ff;
+      --btn-bg: #2d333b;
+      --btn-hover: #3d444d;
+    }
+    body.red-mode {
+      --bg: #000000;
+      --card-bg: #150000;
+      --card-border: #3d0000;
+      --text: #ff4d4d;
+      --text-muted: #992222;
+      --accent: #ff2222;
+      --accent-hover: #cc0000;
+      --accent-subtle: rgba(255, 34, 34, 0.2);
+      --table-stripe: #0d0000;
+      --active-row: rgba(255, 34, 34, 0.35);
+      --timer-bg: #080000;
+      --timer-text: #ff3333;
+      --btn-bg: #2a0000;
+      --btn-hover: #400000;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px 12px; transition: background 0.3s, color 0.3s; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 680px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
+    h1 { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+    .mode-btn { background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border); border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .card-title { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; }
+    select, input[type="number"], input[type="text"] {
+      width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--card-border);
+      border-radius: 8px; padding: 10px 12px; font-size: 0.95rem; outline: none; margin-bottom: 12px;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .sub-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .pill-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .pill {
+      background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border);
+      padding: 6px 11px; border-radius: 16px; font-size: 0.82rem; cursor: pointer; transition: 0.15s;
+    }
+    .pill:hover { background: var(--btn-hover); }
+    .pill.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+    
+    .result-box {
+      text-align: center; background: var(--timer-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 18px 12px; margin-top: 6px;
+    }
+    .result-label { font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; }
+    .result-value { font-size: 2.2rem; font-weight: 800; color: var(--accent); margin: 6px 0; }
+    .result-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: center; gap: 16px; margin-top: 8px; }
+    .badge { background: var(--accent-subtle); color: var(--accent); padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    
+    .timer-wrap { text-align: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--card-border); }
+    .timer-target-badge {
+      display: inline-block; background: var(--accent-subtle); color: var(--accent);
+      padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px;
+    }
+    .timer-display { font-size: 2.8rem; font-family: monospace; font-weight: bold; color: var(--timer-text); margin: 8px 0; }
+    .timer-controls { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+    .btn {
+      background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border);
+      padding: 9px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.15s;
+    }
+    .btn:hover { background: var(--btn-hover); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .timer-tweak-group { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+    .btn-sm {
+      background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border);
+      padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: 0.15s;
+    }
+    .btn-sm:hover { background: var(--btn-hover); }
+    .progress-bar-wrap { width: 100%; height: 6px; background: var(--card-border); border-radius: 3px; overflow: hidden; margin-top: 14px; }
+    .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s linear; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 8px; color: var(--text-muted); border-bottom: 1px solid var(--card-border); font-size: 0.8rem; }
+    td { padding: 9px 8px; border-bottom: 1px solid var(--card-border); vertical-align: middle; }
+    tr:nth-child(even) td { background-color: var(--table-stripe); }
+    tr.selected-row td { background-color: var(--active-row); }
+    .btn-timer-select {
+      background: var(--btn-bg); color: var(--text); border: 1px solid var(--card-border);
+      padding: 4px 9px; border-radius: 6px; font-size: 0.76rem; cursor: pointer; transition: 0.15s; white-space: nowrap;
+    }
+    .btn-timer-select:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-timer-select.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+    
+    .help-text { font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🎞️ 필름 상반칙불궤 계산기</h1>
+        <p style="font-size: 0.75rem; color: var(--text-muted);">Film Reciprocity Failure Calculator (Offline)</p>
+      </div>
+      <button class="mode-btn" id="nightModeBtn" onclick="toggleNightMode()">🔴 야간 레드 모드</button>
+    </header>
+
+    <div class="card">
+      <div class="card-title">1. 필름 종류 선택 (Film Stock)</div>
+      <select id="filmSelect" onchange="handleFilmChange()">
+        <optgroup label="컬러 필름 (Color Negative)">
+          <option value="kodak_gold" selected>Kodak Gold 200 (t^1.30)</option>
+          <option value="kodak_portra">Kodak Portra 160 / 400 / 800 (t^1.30)</option>
+          <option value="kodak_ektar">Kodak Ektar 100 (t^1.22)</option>
+          <option value="cinestill_800t">Cinestill 800T (t^1.35)</option>
+        </optgroup>
+        <optgroup label="흑백 필름 (Black & White)">
+          <option value="ilford_hp5">Ilford HP5 Plus 400 (t^1.31)</option>
+          <option value="ilford_fp4">Ilford FP4 Plus 125 (t^1.26)</option>
+          <option value="ilford_delta">Ilford Delta 100/400 (t^1.33)</option>
+          <option value="kodak_trix">Kodak Tri-X 400 (1.3 * t^1.26)</option>
+          <option value="kodak_tmax">Kodak T-Max 100/400 (t^1.15)</option>
+          <option value="fuji_acros">Fuji Neopan Acros 100 II (120초 무보정)</option>
+          <option value="fomapan">Fomapan 100/200/400 (t^1.54)</option>
+        </optgroup>
+        <optgroup label="기타 / 직접 입력">
+          <option value="standard">일반 표준 필름 (t^1.30)</option>
+          <option value="custom">사용자 정의 보정 지수(P-Factor)</option>
+        </optgroup>
+      </select>
+      <div id="customFactorWrap" style="display:none;">
+        <label>보정 지수 (Exponent, 통상 1.15 ~ 1.55):</label>
+        <input type="number" id="customFactor" step="0.01" value="1.30" min="1.0" max="2.0" oninput="calculate()">
+      </div>
+      <p class="help-text" id="filmDescription">코닥 대표 컬러 네거티브 (ISO 200) / 1초 초과 시 보정 공식: t^1.30 적용</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2. 노출계 정노출 측정값 입력 (Metered Exposure)</div>
+      <label>정노출 조리개:</label>
+      <div class="pill-group" id="aperturePills"></div>
+
+      <label>정노출 셔터속도:</label>
+      <div class="sub-label">⏱️ 1초 미만 (고속/중속):</div>
+      <div class="pill-group" id="fastShutterPills">
+        <button class="pill" onclick="setShutter('1/60', 1/60)">1/60</button>
+        <button class="pill" onclick="setShutter('1/30', 1/30)">1/30</button>
+        <button class="pill" onclick="setShutter('1/15', 1/15)">1/15</button>
+        <button class="pill" onclick="setShutter('1/8', 1/8)">1/8</button>
+        <button class="pill" onclick="setShutter('1/4', 1/4)">1/4</button>
+        <button class="pill" onclick="setShutter('1/2', 1/2)">1/2</button>
+      </div>
+
+      <div class="sub-label">⏱️ 1초 이상 (장노출):</div>
+      <div class="pill-group" id="slowShutterPills">
+        <button class="pill" onclick="setShutter('1s', 1)">1s</button>
+        <button class="pill" onclick="setShutter('2s', 2)">2s</button>
+        <button class="pill active" onclick="setShutter('4s', 4)">4s</button>
+        <button class="pill" onclick="setShutter('8s', 8)">8s</button>
+        <button class="pill" onclick="setShutter('15s', 15)">15s</button>
+        <button class="pill" onclick="setShutter('30s', 30)">30s</button>
+        <button class="pill" onclick="setShutter('1m', 60)">1m</button>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label>셔터속도 직접 입력:</label>
+          <input type="text" id="shutterInput" value="4s" placeholder="예: 1/60, 1/15, 4, 1m 30s" oninput="handleManualShutterInput()">
+        </div>
+        <div>
+          <label>조리개 직접 입력 (f값):</label>
+          <input type="number" id="customApertureInput" value="8" min="1.0" max="64" step="0.1" oninput="setCustomAperture(this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">3. 상반칙불궤 보정 최종 노출 및 타이머 (Compensated Result & Timer)</div>
+      <div class="result-box">
+        <div class="result-label">설정 조리개 <span id="resAperture">f/8.0</span> 기준 권장 셔터속도</div>
+        <div class="result-value" id="resCompTime">6.1초</div>
+        <div class="result-meta">
+          <span>정노출: <b id="resMetered">4.0초</b></span>
+          <span class="badge" id="resStops">+0.6 EV (1.5x)</span>
+        </div>
+      </div>
+
+      <div class="timer-wrap">
+        <div class="timer-target-badge" id="timerTargetBadge">🎯 타이머 대상: f/8.0 (6.1초)</div>
+        <div class="timer-display" id="timerDisplay">00:06.1</div>
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="startTimerBtn" onclick="toggleTimer()">⏱️ 노출 시작</button>
+          <button class="btn" onclick="resetTimer()">초기화</button>
+        </div>
+
+        <div class="timer-tweak-group">
+          <span style="font-size:0.75rem; color:var(--text-muted);">시간 조절:</span>
+          <button class="btn-sm" onclick="adjustTimer(-5)">-5초</button>
+          <button class="btn-sm" onclick="adjustTimer(-1)">-1초</button>
+          <button class="btn-sm" onclick="adjustTimer(+1)">+1초</button>
+          <button class="btn-sm" onclick="adjustTimer(+5)">+5초</button>
+          <button class="btn-sm" onclick="resetToCalculatedDefault()">기본값 복원</button>
+        </div>
+
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="timerProgress"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">4. 조리개별 셔터속도 조합표 (Aperture Options)</div>
+      <p class="help-text" style="margin-bottom: 10px;">다른 조리개를 사용하고 싶다면 우측의 <b>[⏱️ 타이머 설정]</b> 버튼을 눌러 해당 노출 시간을 타이머에 바로 적용할 수 있습니다.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>조리개</th>
+            <th>정노출 기준</th>
+            <th>보정 후 실노출</th>
+            <th>타이머 적용</th>
+          </tr>
+        </thead>
+        <tbody id="apertureTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const FILMS = {
+      kodak_gold: { name: "Kodak Gold 200", type: "power", factor: 1.30, desc: "코닥 대표 컬러 네거티브 (ISO 200) / 1초 초과 시 보정 공식: t^1.30 적용" },
+      kodak_portra: { name: "Kodak Portra 160/400/800", type: "power", factor: 1.30, desc: "인물·풍경 전문가용 컬러 네거티브 (t^1.30)" },
+      kodak_ektar: { name: "Kodak Ektar 100", type: "power", factor: 1.22, desc: "초미립자 고해상도 컬러 필름 (t^1.22)" },
+      cinestill_800t: { name: "Cinestill 800T", type: "power", factor: 1.35, desc: "영화용 텅스텐 유제 기반 컬러 필름 (t^1.35)" },
+      ilford_hp5: { name: "Ilford HP5 Plus 400", type: "power", factor: 1.31, desc: "Ilford 공식 권장 공식 (t^1.31)" },
+      ilford_fp4: { name: "Ilford FP4 Plus 125", type: "power", factor: 1.26, desc: "Ilford 공식 권장 공식 (t^1.26)" },
+      ilford_delta: { name: "Ilford Delta 100/400", type: "power", factor: 1.33, desc: "Delta 계열 흑백 필름 (t^1.33)" },
+      kodak_trix: { name: "Kodak Tri-X 400", type: "tri_x", factor: 1.26, desc: "Kodak 전통 흑백 필름 데이터시트 곡선 근사식" },
+      kodak_tmax: { name: "Kodak T-Max 100/400", type: "power", factor: 1.15, desc: "T-Grain 유제로 상반칙 특성 우수 (t^1.15)" },
+      fuji_acros: { name: "Fuji Neopan Acros 100 II", type: "acros", factor: 0, desc: "120초(2분)까지 보정 불필요, 120초 초과 시 약 +0.5스탑" },
+      fomapan: { name: "Fomapan 100/200/400", type: "power", factor: 1.54, desc: "상반칙불궤가 큰 전통 유제 (t^1.54)" },
+      standard: { name: "일반 표준 필름", type: "power", factor: 1.30, desc: "표준 슈바르츠실트 보정 평균치 (t^1.30)" },
+      custom: { name: "사용자 정의", type: "power", factor: 1.30, desc: "직접 입력한 보정 지수 적용" }
+    };
+
+    const STANDARD_APERTURES = [1.4, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0];
+    let selectedAperture = 8.0;
+    let meteredShutterSec = 4.0;
+    let currentCompensatedSeconds = 6.1;
+
+    let timerTargetSeconds = 6.1;
+    let timerTargetLabel = "f/8.0 (6.1초)";
+    let isCustomTimerSet = false;
+
+    let timerInterval = null;
+    let timerRunning = false;
+    let timerTotalMs = 6100;
+    let timerRemainingMs = 6100;
+
+    function init() {
+      renderAperturePills();
+      calculate();
+    }
+
+    function renderAperturePills() {
+      const container = document.getElementById("aperturePills");
+      container.innerHTML = "";
+      STANDARD_APERTURES.forEach(ap => {
+        const btn = document.createElement("button");
+        btn.className = "pill" + (Math.abs(ap - selectedAperture) < 0.05 ? " active" : "");
+        btn.innerText = `f/${ap}`;
+        btn.onclick = () => {
+          selectedAperture = ap;
+          document.getElementById("customApertureInput").value = ap;
+          isCustomTimerSet = false;
+          renderAperturePills();
+          calculate();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function setCustomAperture(val) {
+      const num = parseFloat(val);
+      if (num && num > 0) {
+        selectedAperture = num;
+        isCustomTimerSet = false;
+        renderAperturePills();
+        calculate();
+      }
+    }
+
+    function parseTimeInput(str) {
+      if (!str) return 1.0;
+      str = str.trim().toLowerCase();
+      if (str.includes("/")) {
+        const parts = str.split("/");
+        const n = parseFloat(parts[0]);
+        const d = parseFloat(parts[1]);
+        if (d && d > 0) return n / d;
+      }
+      if (str.includes("m")) {
+        const parts = str.split("m");
+        const m = parseFloat(parts[0]) || 0;
+        const s = parseFloat(parts[1].replace("s", "")) || 0;
+        return m * 60 + s;
+      }
+      const clean = str.replace(/[^0-9.]/g, "");
+      return parseFloat(clean) || 1.0;
+    }
+
+    function setShutter(label, sec) {
+      document.getElementById("shutterInput").value = label;
+      meteredShutterSec = sec;
+      isCustomTimerSet = false;
+
+      const allPills = document.querySelectorAll("#fastShutterPills .pill, #slowShutterPills .pill");
+      allPills.forEach(b => {
+        b.classList.remove("active");
+        if (b.innerText === label) {
+          b.classList.add("active");
+        }
+      });
+      calculate();
+    }
+
+    function handleManualShutterInput() {
+      const val = document.getElementById("shutterInput").value;
+      meteredShutterSec = parseTimeInput(val);
+      isCustomTimerSet = false;
+
+      const allPills = document.querySelectorAll("#fastShutterPills .pill, #slowShutterPills .pill");
+      allPills.forEach(b => {
+        b.classList.remove("active");
+        if (b.innerText.toLowerCase() === val.trim().toLowerCase()) {
+          b.classList.add("active");
+        }
+      });
+      calculate();
+    }
+
+    function handleFilmChange() {
+      const filmKey = document.getElementById("filmSelect").value;
+      const film = FILMS[filmKey];
+      document.getElementById("customFactorWrap").style.display = filmKey === "custom" ? "block" : "none";
+      document.getElementById("filmDescription").innerText = film.desc;
+      isCustomTimerSet = false;
+      calculate();
+    }
+
+    function computeReciprocity(t, filmKey, customFactor) {
+      if (t <= 1.0) return t;
+      const film = FILMS[filmKey];
+      if (film.type === "acros") {
+        if (t <= 120) return t;
+        if (t <= 1000) return t * 1.414;
+        return t * 2.0;
+      } else if (film.type === "tri_x") {
+        return 1.3 * Math.pow(t, 1.26);
+      } else {
+        const factor = filmKey === "custom" ? (parseFloat(customFactor) || 1.30) : film.factor;
+        return Math.pow(t, factor);
+      }
+    }
+
+    function formatTime(sec) {
+      if (sec < 0.9) {
+        const denom = Math.round(1 / sec);
+        return `1/${denom}초 (${sec.toFixed(3)}s)`;
+      } else if (sec < 60) {
+        return `${sec.toFixed(1)}초`;
+      } else {
+        const m = Math.floor(sec / 60);
+        const s = Math.round(sec % 60);
+        return `${m}분 ${s}초 (${sec.toFixed(0)}s)`;
+      }
+    }
+
+    function calculate() {
+      const filmKey = document.getElementById("filmSelect").value;
+      const customFactor = document.getElementById("customFactor").value;
+
+      const compSec = computeReciprocity(meteredShutterSec, filmKey, customFactor);
+      currentCompensatedSeconds = compSec;
+
+      document.getElementById("resAperture").innerText = `f/${selectedAperture}`;
+      document.getElementById("resCompTime").innerText = formatTime(compSec);
+      document.getElementById("resMetered").innerText = formatTime(meteredShutterSec);
+
+      const stops = meteredShutterSec > 0 ? Math.max(0, Math.log2(compSec / meteredShutterSec)) : 0;
+      const multiplier = meteredShutterSec > 0 ? (compSec / meteredShutterSec).toFixed(1) : 1;
+      
+      if (compSec <= 1.0) {
+        document.getElementById("resStops").innerText = "상반칙불궤 없음 (정상 노출)";
+      } else {
+        document.getElementById("resStops").innerText = `+${stops.toFixed(2)} EV (${multiplier}배 연장)`;
+      }
+
+      if (!isCustomTimerSet) {
+        timerTargetSeconds = compSec;
+        timerTargetLabel = `f/${selectedAperture} (${formatTime(compSec)})`;
+      }
+      updateTimerBadge();
+      resetTimer();
+      renderTable(meteredShutterSec, filmKey, customFactor);
+    }
+
+    function updateTimerBadge() {
+      document.getElementById("timerTargetBadge").innerText = `🎯 타이머 대상: ${timerTargetLabel}`;
+    }
+
+    function setTimerTarget(ap, sec) {
+      if (sec < 1.0) {
+        alert("1초 미만의 노출 시간은 카메라 셔터 다이얼을 직접 조작해 촬영하세요.");
+        return;
+      }
+      isCustomTimerSet = true;
+      timerTargetSeconds = sec;
+      timerTargetLabel = `f/${ap} (${formatTime(sec)})`;
+      updateTimerBadge();
+      resetTimer();
+      
+      const filmKey = document.getElementById("filmSelect").value;
+      const customFactor = document.getElementById("customFactor").value;
+      renderTable(meteredShutterSec, filmKey, customFactor);
+    }
+
+    function adjustTimer(deltaSec) {
+      isCustomTimerSet = true;
+      timerTargetSeconds = Math.max(1, timerTargetSeconds + deltaSec);
+      timerTargetLabel = `직접 조정 (${formatTime(timerTargetSeconds)})`;
+      updateTimerBadge();
+      resetTimer();
+
+      const filmKey = document.getElementById("filmSelect").value;
+      const customFactor = document.getElementById("customFactor").value;
+      renderTable(meteredShutterSec, filmKey, customFactor);
+    }
+
+    function resetToCalculatedDefault() {
+      isCustomTimerSet = false;
+      timerTargetSeconds = currentCompensatedSeconds;
+      timerTargetLabel = `f/${selectedAperture} (${formatTime(currentCompensatedSeconds)})`;
+      updateTimerBadge();
+      resetTimer();
+
+      const filmKey = document.getElementById("filmSelect").value;
+      const customFactor = document.getElementById("customFactor").value;
+      renderTable(meteredShutterSec, filmKey, customFactor);
+    }
+
+    function renderTable(baseMeteredSec, filmKey, customFactor) {
+      const tbody = document.getElementById("apertureTableBody");
+      tbody.innerHTML = "";
+      const apertures = Array.from(new Set([...STANDARD_APERTURES, selectedAperture])).sort((a,b) => a - b);
+
+      apertures.forEach(ap => {
+        const eqMetered = baseMeteredSec * Math.pow(ap / selectedAperture, 2);
+        const eqComp = computeReciprocity(eqMetered, filmKey, customFactor);
+        const isCurrentAperture = Math.abs(ap - selectedAperture) < 0.05;
+        const isTimerTarget = Math.abs(eqComp - timerTargetSeconds) < 0.1 && timerTargetLabel.includes(`f/${ap}`);
+
+        const tr = document.createElement("tr");
+        tr.className = isCurrentAperture ? "selected-row" : "";
+
+        let buttonHtml = `<span style="font-size:0.75rem; color:var(--text-muted);">-</span>`;
+        if (eqComp >= 1.0) {
+          buttonHtml = `<button class="btn-timer-select ${isTimerTarget ? "active" : ""}" onclick="setTimerTarget(${ap}, ${eqComp})">${isTimerTarget ? "✓ 선택됨" : "⏱️ 타이머 설정"}</button>`;
+        }
+
+        tr.innerHTML = `
+          <td><b>f/${ap}</b></td>
+          <td>${formatTime(eqMetered)}</td>
+          <td><b style="color:var(--accent);">${formatTime(eqComp)}</b></td>
+          <td>${buttonHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateTimerDisplay() {
+      const totalSec = Math.max(0, timerRemainingMs / 1000);
+      const m = Math.floor(totalSec / 60).toString().padStart(2, "0");
+      const s = (totalSec % 60).toFixed(1).padStart(4, "0");
+      document.getElementById("timerDisplay").innerText = `${m}:${s}`;
+      const pct = Math.min(100, Math.max(0, ((timerTotalMs - timerRemainingMs) / timerTotalMs) * 100));
+      document.getElementById("timerProgress").style.width = pct + "%";
+    }
+
+    function toggleTimer() {
+      if (timerTargetSeconds < 1.0) {
+        alert("1초 미만 셔터속도는 카메라 본체의 셔터 다이얼을 직접 설정하여 촬영하시면 됩니다.");
+        return;
+      }
+      if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById("startTimerBtn").innerText = "⏱️ 계속 진행";
+      } else {
+        if (timerRemainingMs <= 0) resetTimer();
+        timerRunning = true;
+        document.getElementById("startTimerBtn").innerText = "⏸️ 일시 정지";
+        const startTimestamp = Date.now() - (timerTotalMs - timerRemainingMs);
+        timerInterval = setInterval(() => {
+          const elapsed = Date.now() - startTimestamp;
+          timerRemainingMs = timerTotalMs - elapsed;
+          if (timerRemainingMs <= 0) {
+            timerRemainingMs = 0;
+            clearInterval(timerInterval);
+            timerRunning = false;
+            document.getElementById("startTimerBtn").innerText = "⏱️ 노출 완료!";
+            beep();
+          }
+          updateTimerDisplay();
+        }, 100);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerTotalMs = Math.round(timerTargetSeconds * 1000);
+      timerRemainingMs = timerTotalMs;
+      document.getElementById("startTimerBtn").innerText = "⏱️ 노출 시작";
+      updateTimerDisplay();
+    }
+
+    function beep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 880;
+        osc.type = "sine";
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1.2);
+        setTimeout(() => { osc.stop(); }, 1200);
+      } catch(e) {}
+    }
+
+    function toggleNightMode() {
+      document.body.classList.toggle("red-mode");
+      const isRed = document.body.classList.contains("red-mode");
+      document.getElementById("nightModeBtn").innerText = isRed ? "☀️ 일반 모드" : "🔴 야간 레드 모드";
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
